@@ -22,6 +22,9 @@ import {
   Info,
   Heart,
 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from '@/components/LanguageSelector';
+import { getCurrentLanguage, getAvailableLanguages } from '@/utils/i18n';
 
 interface SettingItem {
   id: string;
@@ -35,12 +38,13 @@ interface SettingItem {
 }
 
 export default function SettingsScreen() {
+  const { t } = useTranslation();
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [flashEnabled, setFlashEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [backgroundMonitoring, setBackgroundMonitoring] = useState(true);
   const [autoAlert, setAutoAlert] = useState(true);
-  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [isLanguageSelectorVisible, setIsLanguageSelectorVisible] = useState(false);
 
   const triggerHapticFeedback = () => {
     if (Platform.OS !== 'web') {
@@ -48,11 +52,28 @@ export default function SettingsScreen() {
     }
   };
 
+  const getCurrentLanguageName = () => {
+    const currentLang = getCurrentLanguage();
+    const availableLanguages = getAvailableLanguages();
+    const language = availableLanguages.find(lang => lang.code === currentLang);
+    return language?.nativeName || 'English';
+  };
+
+  const handleLanguagePress = () => {
+    triggerHapticFeedback();
+    setIsLanguageSelectorVisible(true);
+  };
+
+  const handleLanguageChange = (languageCode: string) => {
+    // The app will automatically re-render with new translations
+    // when the language changes via i18n
+  };
+
   const alertSettings: SettingItem[] = [
     {
       id: 'vibration',
-      title: 'Vibration Alerts',
-      subtitle: 'Strong vibration when emergency detected',
+      title: t('settings.vibrationAlerts'),
+      subtitle: t('settings.vibrationDescription'),
       icon: <Vibrate size={20} color="#6B7280" />,
       type: 'toggle',
       value: vibrationEnabled,
@@ -63,8 +84,8 @@ export default function SettingsScreen() {
     },
     {
       id: 'flash',
-      title: 'Flash Alerts',
-      subtitle: 'Camera flash blinking pattern',
+      title: t('settings.flashAlerts'),
+      subtitle: t('settings.flashDescription'),
       icon: <Flashlight size={20} color="#6B7280" />,
       type: 'toggle',
       value: flashEnabled,
@@ -75,8 +96,8 @@ export default function SettingsScreen() {
     },
     {
       id: 'sound',
-      title: 'Audio Alerts',
-      subtitle: 'Play assistance message',
+      title: t('settings.audioAlerts'),
+      subtitle: t('settings.audioDescription'),
       icon: <Volume2 size={20} color="#6B7280" />,
       type: 'toggle',
       value: soundEnabled,
@@ -90,8 +111,8 @@ export default function SettingsScreen() {
   const monitoringSettings: SettingItem[] = [
     {
       id: 'background',
-      title: 'Background Monitoring',
-      subtitle: 'Continue monitoring when app is closed',
+      title: t('settings.backgroundMonitoring'),
+      subtitle: t('settings.backgroundDescription'),
       icon: <Shield size={20} color="#6B7280" />,
       type: 'toggle',
       value: backgroundMonitoring,
@@ -102,8 +123,8 @@ export default function SettingsScreen() {
     },
     {
       id: 'auto-alert',
-      title: 'Auto Emergency Alert',
-      subtitle: 'Automatically trigger alerts when sounds detected',
+      title: t('settings.autoEmergencyAlert'),
+      subtitle: t('settings.autoAlertDescription'),
       icon: <Bell size={20} color="#6B7280" />,
       type: 'toggle',
       value: autoAlert,
@@ -117,19 +138,16 @@ export default function SettingsScreen() {
   const generalSettings: SettingItem[] = [
     {
       id: 'language',
-      title: 'Language',
-      subtitle: selectedLanguage,
+      title: t('settings.language'),
+      subtitle: getCurrentLanguageName(),
       icon: <Globe size={20} color="#6B7280" />,
       type: 'action',
-      onPress: () => {
-        triggerHapticFeedback();
-        // Language selection would open here
-      },
+      onPress: handleLanguagePress,
     },
     {
       id: 'about',
-      title: 'About WithU',
-      subtitle: 'Version 1.0.0',
+      title: t('settings.aboutWithU'),
+      subtitle: t('settings.version'),
       icon: <Info size={20} color="#6B7280" />,
       type: 'action',
       onPress: () => {
@@ -179,15 +197,15 @@ export default function SettingsScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Settings</Text>
+          <Text style={styles.title}>{t('settings.title')}</Text>
           <Text style={styles.subtitle}>
-            Customize your emergency protection
+            {t('settings.subtitle')}
           </Text>
         </View>
 
         {/* Alert Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Alert Settings</Text>
+          <Text style={styles.sectionTitle}>{t('settings.alertSettings')}</Text>
           <View style={styles.settingsGroup}>
             {alertSettings.map(renderSettingItem)}
           </View>
@@ -195,7 +213,7 @@ export default function SettingsScreen() {
 
         {/* Monitoring Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Monitoring</Text>
+          <Text style={styles.sectionTitle}>{t('settings.monitoring')}</Text>
           <View style={styles.settingsGroup}>
             {monitoringSettings.map(renderSettingItem)}
           </View>
@@ -203,7 +221,7 @@ export default function SettingsScreen() {
 
         {/* General Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>General</Text>
+          <Text style={styles.sectionTitle}>{t('settings.general')}</Text>
           <View style={styles.settingsGroup}>
             {generalSettings.map(renderSettingItem)}
           </View>
@@ -211,16 +229,16 @@ export default function SettingsScreen() {
 
         {/* Emergency Message Preview */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Emergency Message</Text>
+          <Text style={styles.sectionTitle}>{t('settings.emergencyMessage')}</Text>
           <View style={styles.messagePreview}>
             <Volume2 size={24} color="#DC2626" />
             <View style={styles.messageContent}>
-              <Text style={styles.messageTitle}>Assistance Message</Text>
+              <Text style={styles.messageTitle}>{t('settings.assistanceMessage')}</Text>
               <Text style={styles.messageText}>
-                "Take me with you, don't leave me behind."
+                "{t('settings.assistanceText')}"
               </Text>
               <Text style={styles.messageNote}>
-                This message will play loudly to alert nearby people during emergencies.
+                {t('settings.assistanceNote')}
               </Text>
             </View>
           </View>
@@ -230,10 +248,10 @@ export default function SettingsScreen() {
         <View style={styles.privacySection}>
           <View style={styles.privacyHeader}>
             <Shield size={20} color="#16A34A" />
-            <Text style={styles.privacyTitle}>Privacy First</Text>
+            <Text style={styles.privacyTitle}>{t('settings.privacyFirst')}</Text>
           </View>
           <Text style={styles.privacyText}>
-            WithU processes all audio locally on your device. No sound data is ever transmitted or stored externally. Your privacy and security are our top priorities.
+            {t('settings.privacyDescription')}
           </Text>
         </View>
 
@@ -241,13 +259,20 @@ export default function SettingsScreen() {
         <View style={styles.supportSection}>
           <View style={styles.supportHeader}>
             <Heart size={20} color="#DC2626" />
-            <Text style={styles.supportTitle}>Made with care</Text>
+            <Text style={styles.supportTitle}>{t('settings.madeWithCare')}</Text>
           </View>
           <Text style={styles.supportText}>
-            WithU is designed specifically for the deaf and hard-of-hearing community. If you need assistance or have feedback, please reach out to our support team.
+            {t('settings.supportDescription')}
           </Text>
         </View>
       </ScrollView>
+
+      {/* Language Selector Modal */}
+      <LanguageSelector
+        isVisible={isLanguageSelectorVisible}
+        onClose={() => setIsLanguageSelectorVisible(false)}
+        onLanguageChange={handleLanguageChange}
+      />
     </SafeAreaView>
   );
 }

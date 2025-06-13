@@ -1,8 +1,11 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet } from 'react-native';
 import { Shield, Settings, Volume2, User } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 export default function TabLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       screenOptions={{
@@ -16,7 +19,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: t('common.home'),
           tabBarIcon: ({ size, color }) => (
             <Shield size={size} color={color} strokeWidth={2.5} />
           ),
@@ -25,7 +28,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="monitor"
         options={{
-          title: 'Monitor',
+          title: t('common.monitor'),
           tabBarIcon: ({ size, color }) => (
             <Volume2 size={size} color={color} strokeWidth={2.5} />
           ),
@@ -34,7 +37,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="status"
         options={{
-          title: 'Status',
+          title: t('common.status'),
           tabBarIcon: ({ size, color }) => (
             <User size={size} color={color} strokeWidth={2.5} />
           ),
@@ -43,7 +46,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: t('common.settings'),
           tabBarIcon: ({ size, color }) => (
             <Settings size={size} color={color} strokeWidth={2.5} />
           ),
