@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import * as Speech from 'expo-speech';
 import {
   Volume2,
   VolumeX,
@@ -19,6 +20,7 @@ import {
   Play,
   Square,
 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 interface SoundAlert {
   id: string;
@@ -29,6 +31,7 @@ interface SoundAlert {
 }
 
 export default function MonitorScreen() {
+  const { t } = useTranslation();
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [soundLevel, setSoundLevel] = useState(0);
   const [recentAlerts, setRecentAlerts] = useState<SoundAlert[]>([]);
@@ -45,13 +48,127 @@ export default function MonitorScreen() {
     setIsMonitoring(!isMonitoring);
   };
 
-  const playAssistanceMessage = () => {
+  const playAssistanceMessage = async () => {
+    if (isPlayingAssistMessage) return;
+    
     triggerHapticFeedback();
     setIsPlayingAssistMessage(true);
-    // Simulate playing the message
-    setTimeout(() => {
+    
+    const assistanceText = t('settings.assistanceText');
+    
+    try {
+      if (Platform.OS === 'web') {
+        // Web Speech API implementation
+        if ('speechSynthesis' in window) {
+          // Stop any ongoing speech
+          window.speechSynthesis.cancel();
+          
+          const utterance = new SpeechSynthesisUtterance(assistanceText);
+          
+          // Configure speech settings for emergency situations
+          utterance.volume = 1.0; // Maximum volume
+          utterance.rate = 0.8; // Slightly slower for clarity
+          utterance.pitch = 1.0; // Normal pitch
+          
+          // Set language based on current app language
+          const currentLang = t('common.home'); // This will help determine the language
+          if (currentLang.includes('Ana') || currentLang.includes('Sayfa')) {
+            utterance.lang = 'tr-TR'; // Turkish
+          } else if (currentLang.includes('الرئيسية')) {
+            utterance.lang = 'ar-SA'; // Arabic
+          } else {
+            utterance.lang = 'en-US'; // English (default)
+          }
+          
+          // Handle speech events
+          utterance.onstart = () => {
+            console.log('Speech started');
+          };
+          
+          utterance.onend = () => {
+            setIsPlayingAssistMessage(false);
+            console.log('Speech ended');
+          };
+          
+          utterance.onerror = (event) => {
+            setIsPlayingAssistMessage(false);
+            console.error('Speech error:', event.error);
+          };
+          
+          // Start speaking
+          window.speechSynthesis.speak(utterance);
+          
+          // Fallback timeout in case onend doesn't fire
+          setTimeout(() => {
+            setIsPlayingAssistMessage(false);
+          }, 10000);
+        } else {
+          console.warn('Speech synthesis not supported');
+          setIsPlayingAssistMessage(false);
+        }
+      } else {
+        // Mobile implementation using expo-speech
+        const speechOptions: Speech.SpeechOptions = {
+          language: getCurrentSpeechLanguage(),
+          pitch: 1.0,
+          rate: 0.8,
+          volume: 1.0,
+        };
+        
+        // Speak the assistance message
+        await Speech.speak(assistanceText, {
+          ...speechOptions,
+          onStart: () => {
+            console.log('Speech started');
+          },
+          onDone: () => {
+            setIsPlayingAssistMessage(false);
+            console.log('Speech completed');
+          },
+          onStopped: () => {
+            setIsPlayingAssistMessage(false);
+            console.log('Speech stopped');
+          },
+          onError: (error) => {
+            setIsPlayingAssistMessage(false);
+            console.error('Speech error:', error);
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Failed to play assistance message:', error);
       setIsPlayingAssistMessage(false);
-    }, 3000);
+    }
+  };
+
+  const getCurrentSpeechLanguage = (): string => {
+    // Determine language based on current translation
+    const currentLang = t('common.home');
+    if (currentLang.includes('Ana') || currentLang.includes('Sayfa')) {
+      return 'tr'; // Turkish
+    } else if (currentLang.includes('الرئيسية')) {
+      return 'ar'; // Arabic
+    } else {
+      return 'en'; // English (default)
+    }
+  };
+
+  const stopAssistanceMessage = () => {
+    if (!isPlayingAssistMessage) return;
+    
+    try {
+      if (Platform.OS === 'web') {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+      } else {
+        Speech.stop();
+      }
+      setIsPlayingAssistMessage(false);
+    } catch (error) {
+      console.error('Failed to stop speech:', error);
+      setIsPlayingAssistMessage(false);
+    }
   };
 
   const getSoundTypeIcon = (type: string) => {
@@ -70,11 +187,11 @@ export default function MonitorScreen() {
   const getSoundTypeName = (type: string) => {
     switch (type) {
       case 'fire_alarm':
-        return 'Fire Alarm';
+        return t('monitor.fireAlarms');
       case 'smoke_detector':
-        return 'Smoke Detector';
+        return t('monitor.smokeDetectors');
       case 'siren':
-        return 'Emergency Siren';
+        return t('monitor.emergencySirens');
       default:
         return 'Emergency Sound';
     }
@@ -84,21 +201,29 @@ export default function MonitorScreen() {
   useEffect(() => {
     if (isMonitoring) {
       const interval = setInterval(() => {
-        // setSoundLevel(Math.random() * 100);
-        setSoundLevel(100);
+        setSoundLevel(Math.random() * 100);
       }, 200);
       return () => clearInterval(interval);
     }
   }, [isMonitoring]);
+
+  // Cleanup speech on unmount
+  useEffect(() => {
+    return () => {
+      if (isPlayingAssistMessage) {
+        stopAssistanceMessage();
+      }
+    };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Sound Monitor</Text>
+          <Text style={styles.title}>{t('monitor.title')}</Text>
           <Text style={styles.subtitle}>
-            Real-time emergency sound detection
+            {t('monitor.subtitle')}
           </Text>
         </View>
 
@@ -114,13 +239,13 @@ export default function MonitorScreen() {
               styles.statusText,
               { color: isMonitoring ? '#16A34A' : '#6B7280' }
             ]}>
-              {isMonitoring ? 'MONITORING ACTIVE' : 'MONITORING PAUSED'}
+              {isMonitoring ? t('monitor.monitoringActive') : t('monitor.monitoringPaused')}
             </Text>
           </View>
           
           {isMonitoring && (
             <View style={styles.soundLevelContainer}>
-              <Text style={styles.soundLevelText}>Sound Level</Text>
+              <Text style={styles.soundLevelText}>{t('monitor.soundLevel')}</Text>
               <View style={styles.soundLevelBar}>
                 <View
                   style={[
@@ -150,7 +275,7 @@ export default function MonitorScreen() {
               <Play size={24} color="#FFFFFF" strokeWidth={2} />
             )}
             <Text style={styles.monitorButtonText}>
-              {isMonitoring ? 'STOP MONITORING' : 'START MONITORING'}
+              {isMonitoring ? t('monitor.stopMonitoring') : t('monitor.startMonitoring')}
             </Text>
           </TouchableOpacity>
 
@@ -159,27 +284,26 @@ export default function MonitorScreen() {
               styles.assistButton,
               isPlayingAssistMessage && styles.assistButtonActive
             ]}
-            onPress={playAssistanceMessage}
-            disabled={isPlayingAssistMessage}
-            accessibilityLabel="Play assistance message"
+            onPress={isPlayingAssistMessage ? stopAssistanceMessage : playAssistanceMessage}
+            accessibilityLabel={isPlayingAssistMessage ? 'Stop assistance message' : 'Play assistance message'}
           >
             <Volume2 size={20} color="#DC2626" strokeWidth={2} />
             <Text style={styles.assistButtonText}>
-              {isPlayingAssistMessage ? 'PLAYING MESSAGE...' : 'PLAY ASSIST MESSAGE'}
+              {isPlayingAssistMessage ? t('monitor.playingMessage') : t('monitor.playAssistMessage')}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Recent Alerts */}
         <View style={styles.alertsContainer}>
-          <Text style={styles.alertsTitle}>Recent Alerts</Text>
+          <Text style={styles.alertsTitle}>{t('monitor.recentAlerts')}</Text>
           
           {recentAlerts.length === 0 ? (
             <View style={styles.noAlertsContainer}>
               <AlertTriangle size={48} color="#9CA3AF" strokeWidth={1.5} />
-              <Text style={styles.noAlertsText}>No recent alerts</Text>
+              <Text style={styles.noAlertsText}>{t('monitor.noRecentAlerts')}</Text>
               <Text style={styles.noAlertsSubtext}>
-                Emergency sounds will appear here when detected
+                {t('monitor.noAlertsDescription')}
               </Text>
             </View>
           ) : (
@@ -197,7 +321,7 @@ export default function MonitorScreen() {
                       {alert.timestamp.toLocaleTimeString()}
                     </Text>
                     <Text style={styles.alertConfidence}>
-                      Confidence: {Math.round(alert.confidence * 100)}%
+                      {t('monitor.confidence', { percent: Math.round(alert.confidence * 100) })}
                     </Text>
                   </View>
                   <View style={styles.alertBadge}>
@@ -211,19 +335,19 @@ export default function MonitorScreen() {
 
         {/* Emergency Sounds Info */}
         <View style={styles.infoContainer}>
-          <Text style={styles.infoTitle}>Monitored Sounds</Text>
+          <Text style={styles.infoTitle}>{t('monitor.monitoredSounds')}</Text>
           <View style={styles.soundTypesList}>
             <View style={styles.soundTypeItem}>
               <Flame size={16} color="#DC2626" />
-              <Text style={styles.soundTypeText}>Fire Alarms</Text>
+              <Text style={styles.soundTypeText}>{t('monitor.fireAlarms')}</Text>
             </View>
             <View style={styles.soundTypeItem}>
               <AlertTriangle size={16} color="#D97706" />
-              <Text style={styles.soundTypeText}>Smoke Detectors</Text>
+              <Text style={styles.soundTypeText}>{t('monitor.smokeDetectors')}</Text>
             </View>
             <View style={styles.soundTypeItem}>
               <Siren size={16} color="#7C3AED" />
-              <Text style={styles.soundTypeText}>Emergency Sirens</Text>
+              <Text style={styles.soundTypeText}>{t('monitor.emergencySirens')}</Text>
             </View>
           </View>
         </View>
