@@ -10,16 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
-import {
-  Volume2,
-  VolumeX,
-  AlertTriangle,
-  Flame,
-  Siren,
-  Activity,
-  Play,
-  Square,
-} from 'lucide-react-native';
+import { Volume2, VolumeX, TriangleAlert as AlertTriangle, Flame, Siren, Activity, Play, Square } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
 interface SoundAlert {
