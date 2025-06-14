@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,12 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
-import { Volume2, VolumeX, TriangleAlert as AlertTriangle, Flame, Siren, Activity, Play, Square } from 'lucide-react-native';
+import { Volume2, VolumeX, TriangleAlert as AlertTriangle, Flame, Siren, Activity, Play, Square, Mic, MicOff } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
 interface SoundAlert {
@@ -21,12 +22,31 @@ interface SoundAlert {
   duration: number;
 }
 
+interface AudioAnalysisResult {
+  type: 'fire_alarm' | 'smoke_detector' | 'siren' | 'emergency' | null;
+  confidence: number;
+  soundLevel: number;
+}
+
 export default function MonitorScreen() {
   const { t } = useTranslation();
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [soundLevel, setSoundLevel] = useState(0);
   const [recentAlerts, setRecentAlerts] = useState<SoundAlert[]>([]);
   const [isPlayingAssistMessage, setIsPlayingAssistMessage] = useState(false);
+  const [hasAudioPermission, setHasAudioPermission] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+
+  // Audio analysis refs
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const animationFrameRef = useRef<number>(0);
+  const frequencyDataRef = useRef<Uint8Array | null>(null);
+
+  // Sound detection parameters
+  const detectionThresholdRef = useRef(0.7); // Confidence threshold for alerts
+  const lastDetectionRef = useRef<number>(0); // Prevent spam alerts
 
   const triggerHapticFeedback = () => {
     if (Platform.OS !== 'web') {
@@ -34,9 +54,307 @@ export default function MonitorScreen() {
     }
   };
 
-  const toggleMonitoring = () => {
+  // Request microphone permission and start audio context
+  const requestAudioPermission = async () => {
+    if (Platform.OS === 'web') {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            sampleRate: 44100,
+            channelCount: 1,
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          } 
+        });
+        
+        // Stop the stream immediately, we just needed permission
+        stream.getTracks().forEach(track => track.stop());
+        setHasAudioPermission(true);
+        return true;
+      } catch (error) {
+        console.error('Microphone permission denied:', error);
+        Alert.alert(
+          'Microphone Permission Required',
+          'This app needs microphone access to detect emergency sounds. Please allow microphone access and try again.',
+          [{ text: 'OK' }]
+        );
+        return false;
+      }
+    } else {
+      // For mobile platforms, you would implement native audio permission
+      setHasAudioPermission(true);
+      return true;
+    }
+  };
+
+  // Initialize audio analysis
+  const startAudioAnalysis = async () => {
+    if (Platform.OS !== 'web') {
+      Alert.alert('Not Supported', 'Real-time audio analysis is currently only supported on web platforms.');
+      return false;
+    }
+
+    try {
+      // Create audio context
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Get microphone stream
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 44100,
+          channelCount: 1,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        }
+      });
+
+      mediaStreamRef.current = stream;
+
+      // Create analyser node
+      analyserRef.current = audioContextRef.current.createAnalyser();
+      analyserRef.current.fftSize = 4096; // Higher resolution for better frequency analysis
+      analyserRef.current.smoothingTimeConstant = 0.3;
+
+      // Connect microphone to analyser
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      source.connect(analyserRef.current);
+
+      // Initialize frequency data array
+      frequencyDataRef.current = new Uint8Array(analyserRef.current.frequencyBinCount);
+
+      setIsListening(true);
+      startAnalysisLoop();
+      return true;
+    } catch (error) {
+      console.error('Failed to start audio analysis:', error);
+      Alert.alert('Audio Error', 'Failed to access microphone. Please check permissions and try again.');
+      return false;
+    }
+  };
+
+  // Stop audio analysis
+  const stopAudioAnalysis = () => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+
+    analyserRef.current = null;
+    frequencyDataRef.current = null;
+    setIsListening(false);
+    setSoundLevel(0);
+  };
+
+  // Main analysis loop
+  const startAnalysisLoop = () => {
+    const analyze = () => {
+      if (!analyserRef.current || !frequencyDataRef.current || !isMonitoring) {
+        return;
+      }
+
+      // Get frequency data
+      analyserRef.current.getByteFrequencyData(frequencyDataRef.current);
+
+      // Analyze the audio data
+      const result = analyzeAudioForSirens(frequencyDataRef.current);
+      
+      // Update sound level
+      setSoundLevel(result.soundLevel);
+
+      // Check for siren detection
+      if (result.type && result.confidence > detectionThresholdRef.current) {
+        const now = Date.now();
+        // Prevent spam alerts (minimum 5 seconds between alerts)
+        if (now - lastDetectionRef.current > 5000) {
+          handleSoundDetection(result.type, result.confidence);
+          lastDetectionRef.current = now;
+        }
+      }
+
+      animationFrameRef.current = requestAnimationFrame(analyze);
+    };
+
+    analyze();
+  };
+
+  // Advanced audio analysis for siren detection
+  const analyzeAudioForSirens = (frequencyData: Uint8Array): AudioAnalysisResult => {
+    const sampleRate = 44100;
+    const fftSize = 4096;
+    const frequencyResolution = sampleRate / fftSize;
+
+    // Calculate total sound level
+    const totalEnergy = frequencyData.reduce((sum, value) => sum + value, 0);
+    const soundLevel = Math.min(100, (totalEnergy / frequencyData.length) * 0.8);
+
+    // Define frequency ranges for different emergency sounds
+    const ranges = {
+      lowFreq: getFrequencyRange(frequencyData, 200, 800, frequencyResolution), // 200-800 Hz
+      midFreq: getFrequencyRange(frequencyData, 800, 2000, frequencyResolution), // 800-2000 Hz
+      highFreq: getFrequencyRange(frequencyData, 2000, 4000, frequencyResolution), // 2-4 kHz
+      veryHighFreq: getFrequencyRange(frequencyData, 4000, 8000, frequencyResolution), // 4-8 kHz
+    };
+
+    // Siren detection algorithm
+    const sirenConfidence = detectSiren(ranges, frequencyData, frequencyResolution);
+    const fireAlarmConfidence = detectFireAlarm(ranges);
+    const smokeDetectorConfidence = detectSmokeDetector(ranges);
+
+    // Determine the most likely sound type
+    let detectedType: 'fire_alarm' | 'smoke_detector' | 'siren' | 'emergency' | null = null;
+    let maxConfidence = 0;
+
+    if (sirenConfidence > maxConfidence) {
+      detectedType = 'siren';
+      maxConfidence = sirenConfidence;
+    }
+    if (fireAlarmConfidence > maxConfidence) {
+      detectedType = 'fire_alarm';
+      maxConfidence = fireAlarmConfidence;
+    }
+    if (smokeDetectorConfidence > maxConfidence) {
+      detectedType = 'smoke_detector';
+      maxConfidence = smokeDetectorConfidence;
+    }
+
+    return {
+      type: maxConfidence > 0.6 ? detectedType : null,
+      confidence: maxConfidence,
+      soundLevel: soundLevel,
+    };
+  };
+
+  // Get average amplitude in a frequency range
+  const getFrequencyRange = (data: Uint8Array, minFreq: number, maxFreq: number, resolution: number) => {
+    const startIndex = Math.floor(minFreq / resolution);
+    const endIndex = Math.floor(maxFreq / resolution);
+    
+    let sum = 0;
+    let count = 0;
+    
+    for (let i = startIndex; i < endIndex && i < data.length; i++) {
+      sum += data[i];
+      count++;
+    }
+    
+    return count > 0 ? sum / count : 0;
+  };
+
+  // Siren detection using frequency sweeping patterns
+  const detectSiren = (ranges: any, frequencyData: Uint8Array, resolution: number): number => {
+    const { lowFreq, midFreq, highFreq } = ranges;
+    
+    // Sirens typically have strong low to mid frequency content
+    const sirenPattern = (lowFreq * 0.4) + (midFreq * 0.6);
+    
+    // Look for frequency sweeping (characteristic of sirens)
+    const sweepingScore = detectFrequencySweeping(frequencyData, resolution);
+    
+    // Combine pattern matching with sweeping detection
+    const confidence = Math.min(1.0, (sirenPattern / 150) * 0.7 + sweepingScore * 0.3);
+    
+    return confidence;
+  };
+
+  // Detect frequency sweeping patterns characteristic of sirens
+  const detectFrequencySweeping = (frequencyData: Uint8Array, resolution: number): number => {
+    // This is a simplified implementation
+    // In a real-world scenario, you'd track frequency changes over time
+    
+    let peakCount = 0;
+    let lastPeak = 0;
+    const threshold = 80; // Minimum amplitude to consider a peak
+    
+    for (let i = 1; i < frequencyData.length - 1; i++) {
+      if (frequencyData[i] > threshold && 
+          frequencyData[i] > frequencyData[i-1] && 
+          frequencyData[i] > frequencyData[i+1]) {
+        if (lastPeak > 0 && Math.abs(i - lastPeak) > 10) {
+          peakCount++;
+        }
+        lastPeak = i;
+      }
+    }
+    
+    // Multiple peaks across frequency spectrum suggest sweeping
+    return Math.min(1.0, peakCount / 10);
+  };
+
+  // Fire alarm detection (typically 3-4 kHz beeping)
+  const detectFireAlarm = (ranges: any): number => {
+    const { midFreq, highFreq } = ranges;
+    
+    // Fire alarms typically have strong 3-4 kHz content
+    if (highFreq > 100 && midFreq > 60) {
+      return Math.min(1.0, (highFreq + midFreq) / 200);
+    }
+    
+    return 0;
+  };
+
+  // Smoke detector detection (high-pitched beep)
+  const detectSmokeDetector = (ranges: any): number => {
+    const { veryHighFreq, highFreq } = ranges;
+    
+    // Smoke detectors typically have very high frequency beeps
+    if (veryHighFreq > 120) {
+      return Math.min(1.0, veryHighFreq / 150);
+    }
+    
+    return 0;
+  };
+
+  // Handle sound detection
+  const handleSoundDetection = (type: 'fire_alarm' | 'smoke_detector' | 'siren' | 'emergency', confidence: number) => {
+    const newAlert: SoundAlert = {
+      id: Date.now().toString(),
+      type,
+      timestamp: new Date(),
+      confidence,
+      duration: 0,
+    };
+
+    setRecentAlerts(prev => [newAlert, ...prev.slice(0, 9)]); // Keep last 10 alerts
+    
+    // Trigger haptic feedback
     triggerHapticFeedback();
-    setIsMonitoring(!isMonitoring);
+    
+    // Auto-play assistance message for high-confidence detections
+    if (confidence > 0.8) {
+      playAssistanceMessage();
+    }
+  };
+
+  const toggleMonitoring = async () => {
+    if (!isMonitoring) {
+      // Starting monitoring
+      if (!hasAudioPermission) {
+        const granted = await requestAudioPermission();
+        if (!granted) return;
+      }
+      
+      const started = await startAudioAnalysis();
+      if (started) {
+        setIsMonitoring(true);
+        triggerHapticFeedback();
+      }
+    } else {
+      // Stopping monitoring
+      stopAudioAnalysis();
+      setIsMonitoring(false);
+      triggerHapticFeedback();
+    }
   };
 
   const playAssistanceMessage = async () => {
@@ -49,56 +367,31 @@ export default function MonitorScreen() {
     
     try {
       if (Platform.OS === 'web') {
-        // Web Speech API implementation
         if ('speechSynthesis' in window) {
-          // Stop any ongoing speech
           window.speechSynthesis.cancel();
           
           const utterance = new SpeechSynthesisUtterance(assistanceText);
+          utterance.volume = 1.0;
+          utterance.rate = 0.8;
+          utterance.pitch = 1.0;
           
-          // Configure speech settings for emergency situations
-          utterance.volume = 1.0; // Maximum volume
-          utterance.rate = 0.8; // Slightly slower for clarity
-          utterance.pitch = 1.0; // Normal pitch
-          
-          // Set language based on current app language
-          const currentLang = t('common.home'); // This will help determine the language
+          const currentLang = t('common.home');
           if (currentLang.includes('Ana') || currentLang.includes('Sayfa')) {
-            utterance.lang = 'tr-TR'; // Turkish
+            utterance.lang = 'tr-TR';
           } else if (currentLang.includes('الرئيسية')) {
-            utterance.lang = 'ar-SA'; // Arabic
+            utterance.lang = 'ar-SA';
           } else {
-            utterance.lang = 'en-US'; // English (default)
+            utterance.lang = 'en-US';
           }
           
-          // Handle speech events
-          utterance.onstart = () => {
-            console.log('Speech started');
-          };
+          utterance.onend = () => setIsPlayingAssistMessage(false);
+          utterance.onerror = () => setIsPlayingAssistMessage(false);
           
-          utterance.onend = () => {
-            setIsPlayingAssistMessage(false);
-            console.log('Speech ended');
-          };
-          
-          utterance.onerror = (event) => {
-            setIsPlayingAssistMessage(false);
-            console.error('Speech error:', event.error);
-          };
-          
-          // Start speaking
           window.speechSynthesis.speak(utterance);
           
-          // Fallback timeout in case onend doesn't fire
-          setTimeout(() => {
-            setIsPlayingAssistMessage(false);
-          }, 10000);
-        } else {
-          console.warn('Speech synthesis not supported');
-          setIsPlayingAssistMessage(false);
+          setTimeout(() => setIsPlayingAssistMessage(false), 10000);
         }
       } else {
-        // Mobile implementation using expo-speech
         const speechOptions: Speech.SpeechOptions = {
           language: getCurrentSpeechLanguage(),
           pitch: 1.0,
@@ -106,24 +399,11 @@ export default function MonitorScreen() {
           volume: 1.0,
         };
         
-        // Speak the assistance message
         await Speech.speak(assistanceText, {
           ...speechOptions,
-          onStart: () => {
-            console.log('Speech started');
-          },
-          onDone: () => {
-            setIsPlayingAssistMessage(false);
-            console.log('Speech completed');
-          },
-          onStopped: () => {
-            setIsPlayingAssistMessage(false);
-            console.log('Speech stopped');
-          },
-          onError: (error) => {
-            setIsPlayingAssistMessage(false);
-            console.error('Speech error:', error);
-          },
+          onDone: () => setIsPlayingAssistMessage(false),
+          onStopped: () => setIsPlayingAssistMessage(false),
+          onError: () => setIsPlayingAssistMessage(false),
         });
       }
     } catch (error) {
@@ -133,14 +413,13 @@ export default function MonitorScreen() {
   };
 
   const getCurrentSpeechLanguage = (): string => {
-    // Determine language based on current translation
     const currentLang = t('common.home');
     if (currentLang.includes('Ana') || currentLang.includes('Sayfa')) {
-      return 'tr'; // Turkish
+      return 'tr';
     } else if (currentLang.includes('الرئيسية')) {
-      return 'ar'; // Arabic
+      return 'ar';
     } else {
-      return 'en'; // English (default)
+      return 'en';
     }
   };
 
@@ -188,19 +467,10 @@ export default function MonitorScreen() {
     }
   };
 
-  // Simulate sound level monitoring
-  useEffect(() => {
-    if (isMonitoring) {
-      const interval = setInterval(() => {
-        setSoundLevel(Math.random() * 100);
-      }, 200);
-      return () => clearInterval(interval);
-    }
-  }, [isMonitoring]);
-
-  // Cleanup speech on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
+      stopAudioAnalysis();
       if (isPlayingAssistMessage) {
         stopAssistanceMessage();
       }
@@ -221,16 +491,18 @@ export default function MonitorScreen() {
         {/* Monitoring Status */}
         <View style={styles.statusContainer}>
           <View style={styles.statusHeader}>
-            {isMonitoring ? (
-              <Volume2 size={32} color="#16A34A" strokeWidth={2} />
+            {isListening ? (
+              <Mic size={32} color="#16A34A" strokeWidth={2} />
+            ) : isMonitoring ? (
+              <Volume2 size={32} color="#D97706" strokeWidth={2} />
             ) : (
-              <VolumeX size={32} color="#6B7280" strokeWidth={2} />
+              <MicOff size={32} color="#6B7280" strokeWidth={2} />
             )}
             <Text style={[
               styles.statusText,
-              { color: isMonitoring ? '#16A34A' : '#6B7280' }
+              { color: isListening ? '#16A34A' : isMonitoring ? '#D97706' : '#6B7280' }
             ]}>
-              {isMonitoring ? t('monitor.monitoringActive') : t('monitor.monitoringPaused')}
+              {isListening ? 'LISTENING FOR SOUNDS' : isMonitoring ? t('monitor.monitoringActive') : t('monitor.monitoringPaused')}
             </Text>
           </View>
           
@@ -241,11 +513,28 @@ export default function MonitorScreen() {
                 <View
                   style={[
                     styles.soundLevelFill,
-                    { width: `${soundLevel}%` }
+                    { 
+                      width: `${soundLevel}%`,
+                      backgroundColor: soundLevel > 70 ? '#DC2626' : soundLevel > 40 ? '#D97706' : '#16A34A'
+                    }
                   ]}
                 />
               </View>
-              <Text style={styles.soundLevelValue}>{Math.round(soundLevel)}%</Text>
+              <Text style={[
+                styles.soundLevelValue,
+                { color: soundLevel > 70 ? '#DC2626' : soundLevel > 40 ? '#D97706' : '#16A34A' }
+              ]}>
+                {Math.round(soundLevel)}%
+              </Text>
+            </View>
+          )}
+
+          {!hasAudioPermission && (
+            <View style={styles.permissionNotice}>
+              <AlertTriangle size={20} color="#D97706" />
+              <Text style={styles.permissionText}>
+                Microphone permission required for sound detection
+              </Text>
             </View>
           )}
         </View>
@@ -341,6 +630,14 @@ export default function MonitorScreen() {
               <Text style={styles.soundTypeText}>{t('monitor.emergencySirens')}</Text>
             </View>
           </View>
+          
+          {Platform.OS === 'web' && (
+            <View style={styles.webNotice}>
+              <Text style={styles.webNoticeText}>
+                🎤 Real-time audio analysis active. Make sure to allow microphone access for accurate detection.
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -409,14 +706,28 @@ const styles = StyleSheet.create({
   },
   soundLevelFill: {
     height: '100%',
-    backgroundColor: '#16A34A',
     borderRadius: 4,
+    transition: 'width 0.1s ease-out',
   },
   soundLevelValue: {
     fontSize: 12,
     fontFamily: 'Inter-SemiBold',
-    color: '#16A34A',
     textAlign: 'right',
+  },
+  permissionNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF3C7',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  permissionText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#92400E',
+    flex: 1,
   },
   controlsContainer: {
     gap: 12,
@@ -583,5 +894,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
+  },
+  webNotice: {
+    backgroundColor: '#F0F9FF',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  webNoticeText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#0369A1',
+    textAlign: 'center',
   },
 });
