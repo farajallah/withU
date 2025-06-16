@@ -34,23 +34,23 @@ export default function AboutModal({ isVisible, onClose }: AboutModalProps) {
   const features = [
     {
       icon: <Shield size={20} color="#16A34A" />,
-      title: 'Real-time Sound Detection',
-      description: 'Advanced AI-powered detection of emergency sounds including fire alarms, smoke detectors, and sirens.',
+      title: t('about.features.soundDetection.title'),
+      description: t('about.features.soundDetection.description'),
     },
     {
       icon: <Heart size={20} color="#DC2626" />,
-      title: 'Accessibility First',
-      description: 'Designed specifically for the deaf and hard-of-hearing community with visual and haptic alerts.',
+      title: t('about.features.accessibility.title'),
+      description: t('about.features.accessibility.description'),
     },
     {
       icon: <Users size={20} color="#7C3AED" />,
-      title: 'Status Sharing',
-      description: 'Let others know your safety status during emergencies with customizable messages.',
+      title: t('about.features.statusSharing.title'),
+      description: t('about.features.statusSharing.description'),
     },
     {
       icon: <Globe size={20} color="#0369A1" />,
-      title: 'Multi-language Support',
-      description: 'Available in English, Turkish, and Arabic with more languages coming soon.',
+      title: t('about.features.multiLanguage.title'),
+      description: t('about.features.multiLanguage.description'),
     },
   ];
 
@@ -69,13 +69,13 @@ export default function AboutModal({ isVisible, onClose }: AboutModalProps) {
               <Shield size={32} color="#DC2626" strokeWidth={2.5} />
               <View style={styles.headerText}>
                 <Text style={styles.appName}>WithU</Text>
-                <Text style={styles.version}>Version 1.0.0</Text>
+                <Text style={styles.version}>{t('about.version')}</Text>
               </View>
             </View>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={handleClose}
-              accessibilityLabel="Close about screen"
+              accessibilityLabel={t('about.closeButton')}
             >
               <X size={24} color="#6B7280" />
             </TouchableOpacity>
@@ -84,17 +84,15 @@ export default function AboutModal({ isVisible, onClose }: AboutModalProps) {
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* Mission Statement */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Our Mission</Text>
+              <Text style={styles.sectionTitle}>{t('about.mission.title')}</Text>
               <Text style={styles.missionText}>
-                WithU is dedicated to creating a safer world for the deaf and hard-of-hearing community. 
-                We believe everyone deserves to be aware of emergency situations and have the tools to 
-                respond appropriately.
+                {t('about.mission.description')}
               </Text>
             </View>
 
             {/* Features */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Key Features</Text>
+              <Text style={styles.sectionTitle}>{t('about.features.title')}</Text>
               <View style={styles.featuresList}>
                 {features.map((feature, index) => (
                   <View key={index} style={styles.featureItem}>
@@ -112,15 +110,13 @@ export default function AboutModal({ isVisible, onClose }: AboutModalProps) {
 
             {/* Privacy & Security */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Privacy & Security</Text>
+              <Text style={styles.sectionTitle}>{t('about.privacy.title')}</Text>
               <View style={styles.privacyCard}>
                 <Shield size={24} color="#16A34A" />
                 <View style={styles.privacyContent}>
-                  <Text style={styles.privacyTitle}>Your Privacy is Protected</Text>
+                  <Text style={styles.privacyTitle}>{t('about.privacy.subtitle')}</Text>
                   <Text style={styles.privacyText}>
-                    All audio processing happens locally on your device. No sound data is ever 
-                    transmitted, stored, or shared with external servers. Your privacy and security 
-                    are our top priorities.
+                    {t('about.privacy.description')}
                   </Text>
                 </View>
               </View>
@@ -128,37 +124,32 @@ export default function AboutModal({ isVisible, onClose }: AboutModalProps) {
 
             {/* Technology */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Technology</Text>
+              <Text style={styles.sectionTitle}>{t('about.technology.title')}</Text>
               <Text style={styles.technologyText}>
-                WithU uses advanced Web Audio API and machine learning algorithms to detect emergency 
-                sounds in real-time. The app is built with React Native and Expo, ensuring cross-platform 
-                compatibility and optimal performance.
+                {t('about.technology.description')}
               </Text>
             </View>
 
             {/* Support */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Support & Feedback</Text>
+              <Text style={styles.sectionTitle}>{t('about.support.title')}</Text>
               <View style={styles.supportCard}>
                 <Mail size={20} color="#DC2626" />
                 <View style={styles.supportContent}>
-                  <Text style={styles.supportTitle}>Need Help?</Text>
+                  <Text style={styles.supportTitle}>{t('about.support.subtitle')}</Text>
                   <Text style={styles.supportText}>
-                    We're here to help! If you have questions, feedback, or need assistance, 
-                    please reach out to our support team.
+                    {t('about.support.description')}
                   </Text>
-                  <Text style={styles.supportEmail}>support@withu-app.com</Text>
+                  <Text style={styles.supportEmail}>{t('about.support.email')}</Text>
                 </View>
               </View>
             </View>
 
             {/* Acknowledgments */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Acknowledgments</Text>
+              <Text style={styles.sectionTitle}>{t('about.acknowledgments.title')}</Text>
               <Text style={styles.acknowledgmentText}>
-                Special thanks to the deaf and hard-of-hearing community for their invaluable 
-                feedback and insights that made this app possible. WithU is built with love and 
-                dedication to serve those who need it most.
+                {t('about.acknowledgments.description')}
               </Text>
             </View>
 
@@ -166,10 +157,10 @@ export default function AboutModal({ isVisible, onClose }: AboutModalProps) {
             <View style={styles.ratingSection}>
               <View style={styles.ratingHeader}>
                 <Star size={24} color="#F59E0B" />
-                <Text style={styles.ratingTitle}>Enjoying WithU?</Text>
+                <Text style={styles.ratingTitle}>{t('about.rating.title')}</Text>
               </View>
               <Text style={styles.ratingText}>
-                Your feedback helps us improve and reach more people who need emergency sound detection.
+                {t('about.rating.description')}
               </Text>
             </View>
           </ScrollView>
@@ -177,10 +168,10 @@ export default function AboutModal({ isVisible, onClose }: AboutModalProps) {
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              Made with ❤️ for the deaf and hard-of-hearing community
+              {t('about.footer.madeWith')}
             </Text>
             <Text style={styles.copyright}>
-              © 2024 WithU. All rights reserved.
+              {t('about.footer.copyright')}
             </Text>
           </View>
         </View>

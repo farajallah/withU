@@ -107,5 +107,59 @@
     "turkish": "Türkçe",
     "arabic": "العربية",
     "selectLanguage": "Dil Seçin"
+  },
+  "about": {
+    "version": "Sürüm 1.0.0",
+    "closeButton": "Hakkında ekranını kapat",
+    "mission": {
+      "title": "Misyonumuz",
+      "description": "WithU, sağır ve işitme engelli topluluk için daha güvenli bir dünya yaratmaya adanmıştır. Herkesin acil durum durumlarından haberdar olma ve uygun şekilde yanıt verme araçlarına sahip olma hakkı olduğuna inanıyoruz."
+    },
+    "features": {
+      "title": "Temel Özellikler",
+      "soundDetection": {
+        "title": "Gerçek Zamanlı Ses Tespiti",
+        "description": "Yangın alarmları, duman dedektörleri ve sirenler dahil olmak üzere acil durum seslerinin gelişmiş AI destekli tespiti."
+      },
+      "accessibility": {
+        "title": "Önce Erişilebilirlik",
+        "description": "Görsel ve dokunsal uyarılarla sağır ve işitme engelli topluluk için özel olarak tasarlanmıştır."
+      },
+      "statusSharing": {
+        "title": "Durum Paylaşımı",
+        "description": "Özelleştirilebilir mesajlarla acil durumlarda başkalarına güvenlik durumunuzu bildirin."
+      },
+      "multiLanguage": {
+        "title": "Çok Dilli Destek",
+        "description": "İngilizce, Türkçe ve Arapça dillerinde mevcuttur, yakında daha fazla dil gelecek."
+      }
+    },
+    "privacy": {
+      "title": "Gizlilik ve Güvenlik",
+      "subtitle": "Gizliliğiniz Korunuyor",
+      "description": "Tüm ses işleme cihazınızda yerel olarak gerçekleşir. Hiçbir ses verisi harici sunuculara iletilmez, saklanmaz veya paylaşılmaz. Gizliliğiniz ve güvenliğiniz en önemli önceliklerimizdir."
+    },
+    "technology": {
+      "title": "Teknoloji",
+      "description": "WithU, acil durum seslerini gerçek zamanlı olarak tespit etmek için gelişmiş Web Audio API ve makine öğrenmesi algoritmalarını kullanır. Uygulama React Native ve Expo ile geliştirilmiştir, bu da platformlar arası uyumluluk ve optimal performans sağlar."
+    },
+    "support": {
+      "title": "Destek ve Geri Bildirim",
+      "subtitle": "Yardıma mı İhtiyacınız Var?",
+      "description": "Yardım etmek için buradayız! Sorularınız, geri bildirimleriniz varsa veya yardıma ihtiyacınız varsa, lütfen destek ekibimizle iletişime geçin.",
+      "email": "destek@withu-app.com"
+    },
+    "acknowledgments": {
+      "title": "Teşekkürler",
+      "description": "Bu uygulamayı mümkün kılan değerli geri bildirimleri ve görüşleri için sağır ve işitme engelli topluluğa özel teşekkürler. WithU, en çok ihtiyaç duyanlara hizmet etmek için sevgi ve özveriyle geliştirilmiştir."
+    },
+    "rating": {
+      "title": "WithU'yu Beğendiniz mi?",
+      "description": "Geri bildirimleriniz gelişmemize ve acil durum ses tespitine ihtiyaç duyan daha fazla kişiye ulaşmamıza yardımcı olur."
+    },
+    "footer": {
+      "madeWith": "Sağır ve işitme engelli topluluk için ❤️ ile yapıldı",
+      "copyright": "© 2024 WithU. Tüm hakları saklıdır."
+    }
   }
 }
