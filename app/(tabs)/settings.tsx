@@ -24,6 +24,7 @@ import {
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from '@/components/LanguageSelector';
+import AboutModal from '@/components/AboutModal';
 import { getCurrentLanguage, getAvailableLanguages } from '@/utils/i18n';
 
 interface SettingItem {
@@ -45,6 +46,7 @@ export default function SettingsScreen() {
   const [backgroundMonitoring, setBackgroundMonitoring] = useState(true);
   const [autoAlert, setAutoAlert] = useState(true);
   const [isLanguageSelectorVisible, setIsLanguageSelectorVisible] = useState(false);
+  const [isAboutModalVisible, setIsAboutModalVisible] = useState(false);
 
   const triggerHapticFeedback = () => {
     if (Platform.OS !== 'web') {
@@ -62,6 +64,11 @@ export default function SettingsScreen() {
   const handleLanguagePress = () => {
     triggerHapticFeedback();
     setIsLanguageSelectorVisible(true);
+  };
+
+  const handleAboutPress = () => {
+    triggerHapticFeedback();
+    setIsAboutModalVisible(true);
   };
 
   const handleLanguageChange = (languageCode: string) => {
@@ -150,10 +157,7 @@ export default function SettingsScreen() {
       subtitle: t('settings.version'),
       icon: <Info size={20} color="#6B7280" />,
       type: 'action',
-      onPress: () => {
-        triggerHapticFeedback();
-        // About screen would open here
-      },
+      onPress: handleAboutPress,
     },
   ];
 
@@ -272,6 +276,12 @@ export default function SettingsScreen() {
         isVisible={isLanguageSelectorVisible}
         onClose={() => setIsLanguageSelectorVisible(false)}
         onLanguageChange={handleLanguageChange}
+      />
+
+      {/* About Modal */}
+      <AboutModal
+        isVisible={isAboutModalVisible}
+        onClose={() => setIsAboutModalVisible(false)}
       />
     </SafeAreaView>
   );
