@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   Dimensions,
   Platform,
+  Image,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -36,12 +38,33 @@ export default function HomeScreen() {
     setIsProtected(!isProtected);
   };
 
+  const handleBoltBadgePress = async () => {
+    try {
+      await Linking.openURL('https://bolt.new/');
+    } catch (error) {
+      console.error('Failed to open URL:', error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={isProtected ? ['#DC2626', '#B91C1C'] : ['#6B7280', '#4B5563']}
         style={styles.background}
       >
+        {/* Bolt.new Badge */}
+        <TouchableOpacity 
+          style={styles.boltBadge}
+          onPress={handleBoltBadgePress}
+          accessibilityLabel="Built with Bolt.new - Open Bolt.new website"
+        >
+          <Image
+            source={require('../../assets/images/bolt.new-badge.png')}
+            style={styles.boltBadgeImage}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+
         {/* Header Section */}
         <View style={styles.header}>
           <Text style={styles.appTitle}>WithU</Text>
@@ -129,9 +152,24 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
   },
+  boltBadge: {
+    position: 'absolute',
+    top: Platform.OS === 'web' ? 20 : 60,
+    right: 20,
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  boltBadgeImage: {
+    width: width > 768 ? 120 : width > 480 ? 100 : 80,
+    height: width > 768 ? 40 : width > 480 ? 33 : 27,
+  },
   header: {
     alignItems: 'center',
-    paddingTop: 20,
+    paddingTop: Platform.OS === 'web' ? 80 : 100,
     paddingBottom: 30,
   },
   appTitle: {
