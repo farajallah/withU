@@ -12,7 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import { Shield, AlertTriangle, Heart, Zap } from 'lucide-react-native';
+import { Shield, TriangleAlert as AlertTriangle, Heart, Zap } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
