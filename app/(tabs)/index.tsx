@@ -52,7 +52,14 @@ export default function HomeScreen() {
         colors={isProtected ? ['#DC2626', '#B91C1C'] : ['#6B7280', '#4B5563']}
         style={styles.background}
       >
-        {/* Bolt.new Badge */}
+        <View style={styles.headerContainer}>
+        {/* Header Section */}
+        <View style={styles.header}>
+          <Text style={styles.appTitle}>WithU</Text>
+          <Text style={styles.subtitle}>Emergency Protection Active</Text>
+        </View>
+
+          {/* Bolt.new Badge */}
         <TouchableOpacity 
           style={styles.boltBadge}
           onPress={handleBoltBadgePress}
@@ -65,12 +72,8 @@ export default function HomeScreen() {
           />
         </TouchableOpacity>
 
-        {/* Header Section */}
-        <View style={styles.header}>
-          <Text style={styles.appTitle}>WithU</Text>
-          <Text style={styles.subtitle}>Emergency Protection Active</Text>
-        </View>
-
+</View>
+        
         {/* Main Status Card */}
         <BlurView intensity={20} style={styles.statusCard}>
           <View style={styles.statusContent}>
@@ -145,6 +148,12 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center', // vertically align items
+    justifyContent: 'space-between', // or 'flex-start' if you don't want space
+    padding: 16,
+  },
   container: {
     flex: 1,
   },
