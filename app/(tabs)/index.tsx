@@ -178,8 +178,10 @@ headerContainer: {
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   boltBadgeImage: {
-    width: width > 768 ? 160 : width > 480 ? 140 : 120,
-    height: width > 768 ? 53 : width > 480 ? 47 : 40,
+    // width: width > 768 ? 160 : width > 480 ? 140 : 120,
+    // height: width > 768 ? 53 : width > 480 ? 47 : 40,
+    width:60,
+    height:60,
   },
   header: {
     alignItems: 'center',
