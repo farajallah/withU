@@ -149,11 +149,13 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
 headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center', // vertically align items
-    justifyContent: 'space-between', // or 'flex-start' if you don't want space
-    padding: 16,
-  },
+flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  paddingHorizontal: 20,
+  paddingTop: Platform.OS === 'web' ? 60 : 80, // move top padding here
+  paddingBottom: 20,
+},
   container: {
     flex: 1,
   },
@@ -162,20 +164,16 @@ headerContainer: {
     paddingHorizontal: 20,
   },
   boltBadge: {
-    position: 'absolute',
-    top: Platform.OS === 'web' ? 20 : 60,
-    right: 20,
-    zIndex: 1000,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 12,
-    padding: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  borderRadius: 12,
+  padding: 8,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.4,
+  shadowRadius: 8,
+  elevation: 8,
+  borderWidth: 1,
+  borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   boltBadgeImage: {
     // width: width > 768 ? 160 : width > 480 ? 140 : 120,
@@ -184,9 +182,8 @@ headerContainer: {
     height:60,
   },
   header: {
-    alignItems: 'center',
-    paddingTop: Platform.OS === 'web' ? 100 : 120,
-    paddingBottom: 30,
+    flex: 1,
+    justifyContent: 'center',
   },
   appTitle: {
     fontSize: 32,
